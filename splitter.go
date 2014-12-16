@@ -129,12 +129,9 @@ func worker(i int, cmdTemplate string, jobs <-chan int, results chan<- int, exit
 func parseRepeater(input string) map[int]int {
 	output := map[int]int{}
 
-	fmt.Println(input)
-
 	if strings.Contains(input, ",") {
 		parts := strings.Split(input, ",")
 		for _, s := range parts {
-			fmt.Println(s)
 			if strings.Contains(s, "-") {
 				ranges := strings.Split(s, "-")
 				from, _ := strconv.Atoi(ranges[0])
@@ -149,7 +146,6 @@ func parseRepeater(input string) map[int]int {
 		}
 	} else {
 		num, _ := strconv.Atoi(input)
-		fmt.Println(num)
 		for i := 1; i <= num; i++ {
 			output[i] = i
 		}
@@ -170,8 +166,6 @@ func main() {
 
 	repeater := parseRepeater(argv[0])
 
-	fmt.Println("Reapeater", repeater)
-
 	if len(repeater) < 1 {
 		check(fmt.Errorf("valid <repeater> required (e.g. 56 or 1,3,4,100-102"))
 	}
@@ -186,8 +180,6 @@ func main() {
 
 	// command name and args
 	cmd := strings.Join(argv[1:], " ")
-
-	fmt.Println(cmd)
 
 	// run workers in concurent subroutines
 	log.Printf("Splitting %d jobs on %d workers", repeater, *pool)
