@@ -54,7 +54,7 @@ const usage = `
     You can use ranges in first repeater argument
 
 [32m
-    $ splitter 1,2,100-103 get-item %d
+    $ splitter 1,2,100-102 get-item %d
 [0m
 
 [30m
@@ -64,7 +64,6 @@ const usage = `
     - get-item 100
     - get-item 101
     - get-item 102
-    - get-item 103
 [0m
 
 
@@ -126,24 +125,32 @@ func worker(i int, cmdTemplate string, jobs <-chan int, results chan<- int, exit
 	}
 }
 
+func parseRanges(output map[int]int, s string) map[int]int {
+	if strings.Contains(s, "-") {
+		ranges := strings.Split(s, "-")
+		from, _ := strconv.Atoi(ranges[0])
+		to, _ := strconv.Atoi(ranges[1])
+		for i := from; i <= to; i++ {
+			output[i] = i
+		}
+	} else {
+		i, _ := strconv.Atoi(s)
+		output[i] = i
+	}
+
+	return output
+}
+
 func parseRepeater(input string) map[int]int {
 	output := map[int]int{}
 
 	if strings.Contains(input, ",") {
 		parts := strings.Split(input, ",")
 		for _, s := range parts {
-			if strings.Contains(s, "-") {
-				ranges := strings.Split(s, "-")
-				from, _ := strconv.Atoi(ranges[0])
-				to, _ := strconv.Atoi(ranges[1])
-				for i := from; i <= to; i++ {
-					output[i] = i
-				}
-			} else {
-				i, _ := strconv.Atoi(s)
-				output[i] = i
-			}
+			parseRanges(output, s)
 		}
+	} else if strings.Contains(input, "-") {
+		parseRanges(output, input)
 	} else {
 		num, _ := strconv.Atoi(input)
 		for i := 1; i <= num; i++ {
