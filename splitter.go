@@ -119,7 +119,7 @@ func worker(i int, cmdTemplate string, jobs <-chan int, results chan<- int, exit
 			return
 		}
 
-		log.Printf("PID %d completed in %s (param %d)", ps.Pid(), time.Since(start), param)
+		log.Printf("Workers %s PID %d completed in %s (param %d)", i, ps.Pid(), time.Since(start), param)
 
 		results <- ps.Pid()
 	}
