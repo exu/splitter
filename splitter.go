@@ -97,7 +97,7 @@ func worker(i int, cmdTemplate string, jobs <-chan int, results chan<- int, exit
 			cmd = fmt.Sprintf(cmdTemplate, param)
 		}
 
-		log.Printf("Worker %d runs `%s`", i, cmd)
+		log.Printf("Worker %d runs [32m`%s`[0m", i, cmd)
 
 		// running process
 		proc := exec.Command("/bin/sh", "-c", cmd)
@@ -119,7 +119,8 @@ func worker(i int, cmdTemplate string, jobs <-chan int, results chan<- int, exit
 			return
 		}
 
-		log.Printf("Workers %s PID %d completed in %s (param %d)", i, ps.Pid(), time.Since(start), param)
+		log.Printf("Worker %d completed [32m`%s`[0m in %.3fs (PID:%d)",
+			i, cmd, time.Since(start).Seconds(), ps.Pid())
 
 		results <- ps.Pid()
 	}
@@ -189,7 +190,8 @@ func main() {
 	cmd := strings.Join(argv[1:], " ")
 
 	// run workers in concurent subroutines
-	log.Printf("Splitting %d jobs on %d workers", repeater, *pool)
+	log.Printf("Splitting jobs on %d workers", *pool)
+
 	for i := 1; i <= *pool; i++ {
 		go worker(i, cmd, jobs, results, exit)
 	}
