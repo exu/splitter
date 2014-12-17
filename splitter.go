@@ -28,7 +28,7 @@ const usage = `
   Parameters:
 
   [33m<reapeter>[0m - how many jobs generate (numbers passed to command string)
-  [33m<command>[0m  - command template (could contain %d placeholder,
+  [33m<command>[0m  - command template (could contain %s placeholder,
                     where number from repeater will be injected
 
   Options:
@@ -39,7 +39,7 @@ const usage = `
   Examples:
 
 [32m
-    $ splitter --pool=10 1560 get-item %d
+    $ splitter --pool=10 1560 get-item %s
 [0m
 
 [30m
@@ -54,7 +54,7 @@ const usage = `
     You can use ranges in first repeater argument
 
 [32m
-    $ splitter 1,2,100-102 get-item %d
+    $ splitter 1,2,100-102 get-item %s
 [0m
 
 [30m
@@ -85,7 +85,7 @@ func check(err error) {
 	}
 }
 
-func worker(i int, cmdTemplate string, jobs <-chan int, results chan<- int, exit *bool) {
+func worker(i int, cmdTemplate string, jobs <-chan string, results chan<- int, exit *bool) {
 	var cmd string
 
 	for param := range jobs {
@@ -126,24 +126,25 @@ func worker(i int, cmdTemplate string, jobs <-chan int, results chan<- int, exit
 	}
 }
 
-func parseRanges(output map[int]int, s string) map[int]int {
+func parseRanges(output map[string]string, s string) {
+	var val string
+
 	if strings.Contains(s, "-") {
 		ranges := strings.Split(s, "-")
 		from, _ := strconv.Atoi(ranges[0])
 		to, _ := strconv.Atoi(ranges[1])
 		for i := from; i <= to; i++ {
-			output[i] = i
+			val = strconv.Itoa(i)
+			output[val] = val
 		}
 	} else {
-		i, _ := strconv.Atoi(s)
-		output[i] = i
+		output[s] = s
 	}
-
-	return output
 }
 
-func parseRepeater(input string) map[int]int {
-	output := map[int]int{}
+func parseRepeater(input string) map[string]string {
+	var val string
+	output := map[string]string{}
 
 	if strings.Contains(input, ",") {
 		parts := strings.Split(input, ",")
@@ -155,7 +156,8 @@ func parseRepeater(input string) map[int]int {
 	} else {
 		num, _ := strconv.Atoi(input)
 		for i := 1; i <= num; i++ {
-			output[i] = i
+			val = strconv.Itoa(i)
+			output[val] = val
 		}
 	}
 
@@ -178,7 +180,7 @@ func main() {
 		check(fmt.Errorf("valid <repeater> required (e.g. 56 or 1,3,4,100-102"))
 	}
 
-	jobs := make(chan int, len(repeater))
+	jobs := make(chan string, len(repeater))
 	results := make(chan int, len(repeater))
 
 	// command
