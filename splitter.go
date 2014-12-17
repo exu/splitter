@@ -27,9 +27,9 @@ const usage = `
 
   Parameters:
 
-  [33m<reapeter>[0m - how many jobs generate (numbers passed to command string)
-  [33m<command>[0m  - command template (could contain %s placeholder,
-                    where number from repeater will be injected
+    [33m<reapeter>[0m - how many jobs generate (numbers passed to command string)
+    [33m<command>[0m  - command template (could contain %s placeholder,
+               where number from repeater will be injected)
 
   Options:
 
@@ -37,35 +37,32 @@ const usage = `
     [33m--pool[0m worker pool size - default 4
 
   Examples:
-
 [32m
     $ splitter --pool=10 1560 get-item %s
 [0m
-
 [30m
-    running concurrent 10 workers and executing foreach
+    running concurrent 10 workers and executing
+
     - get-item 1
     - get-item 2
     - ....
     - ....
     - get-item 1560
 [0m
-
     You can use ranges in first repeater argument
-
 [32m
-    $ splitter 1,2,100-102 get-item %s
+    $ splitter 100-102,mom,dad,son get-item %s
 [0m
-
 [30m
-    running concurrent 4 default workers and executing foreach
-    - get-item 1
-    - get-item 2
+    running concurrent 4 default workers and executing
+
     - get-item 100
     - get-item 101
     - get-item 102
+    - get-item mom
+    - get-item dad
+    - get-item son
 [0m
-
 
 `
 
