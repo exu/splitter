@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -24,12 +25,14 @@ const usage = `
 [0m
 
   Usage: [32msplitter [options] <repeater> <command>[0m
+     or: [32msplitter [options] <file name>[0m
 
   Parameters:
 
-    [33m<reapeter>[0m - how many jobs generate (numbers passed to command string)
-    [33m<command>[0m  - command template (could contain %s placeholder,
+    [33m<reapeter>[0m  - how many jobs generate (numbers passed to command string)
+    [33m<command>[0m   - command template (could contain %s placeholder,
                where number from repeater will be injected)
+    [33m<file name>[0m - file with command in each line
 
   Options:
 
@@ -82,18 +85,10 @@ func check(err error) {
 	}
 }
 
-func worker(i int, cmdTemplate string, jobs <-chan string, results chan<- int, exit *bool) {
-	var cmd string
-
-	for param := range jobs {
-
+func worker(i int, queue <-chan string, results chan<- int, exit *bool) {
+	for cmd := range queue {
 		start := time.Now()
 		// injecting parameter for loop
-		cmd = cmdTemplate
-		if strings.Contains(cmdTemplate, "%") {
-			cmd = fmt.Sprintf(cmdTemplate, param)
-		}
-
 		log.Printf("Worker %d runs [32m`%s`[0m", i, cmd)
 
 		// running process
@@ -107,23 +102,19 @@ func worker(i int, cmdTemplate string, jobs <-chan string, results chan<- int, e
 
 		if err != nil {
 			log.Printf("pid %d failed with %s", ps.Pid(), ps.String())
-			results <- 0
-
 			if *exit {
 				os.Exit(1)
 			}
-
-			return
+		} else {
+			log.Printf("Worker %d completed [32m`%s`[0m in %.3fs (PID:%d)",
+				i, cmd, time.Since(start).Seconds(), ps.Pid())
 		}
-
-		log.Printf("Worker %d completed [32m`%s`[0m in %.3fs (PID:%d)",
-			i, cmd, time.Since(start).Seconds(), ps.Pid())
 
 		results <- ps.Pid()
 	}
 }
 
-func parseRanges(output map[string]string, s string) {
+func parseRanges(output map[int]string, s string) {
 	var val string
 
 	if strings.Contains(s, "-") {
@@ -131,17 +122,18 @@ func parseRanges(output map[string]string, s string) {
 		from, _ := strconv.Atoi(ranges[0])
 		to, _ := strconv.Atoi(ranges[1])
 		for i := from; i <= to; i++ {
-			val = strconv.Itoa(i)
-			output[val] = val
+			output[i] = val
 		}
 	} else {
-		output[s] = s
+		val, _ := strconv.Atoi(s)
+		output[val] = s
 	}
 }
 
-func parseRepeater(input string) map[string]string {
-	var val string
-	output := map[string]string{}
+func getJobs(input string, cmdTemplate string) map[int]string {
+	var cmd string
+
+	output := map[int]string{}
 
 	if strings.Contains(input, ",") {
 		parts := strings.Split(input, ",")
@@ -153,55 +145,94 @@ func parseRepeater(input string) map[string]string {
 	} else {
 		num, _ := strconv.Atoi(input)
 		for i := 1; i <= num; i++ {
-			val = strconv.Itoa(i)
-			output[val] = val
+			output[i] = strconv.Itoa(i)
 		}
+	}
+
+	// pass parameters to templates
+	for idx, val := range output {
+		cmd = cmdTemplate
+		if strings.Contains(cmdTemplate, "%") {
+			cmd = fmt.Sprintf(cmdTemplate, val)
+		}
+
+		output[idx] = cmd
+	}
+
+	return output
+}
+
+func fileJobs(file string) map[int]string {
+	var output = map[int]string{}
+
+	contents, err := ioutil.ReadFile(file)
+	fmt.Println("File contents %v", contents)
+
+	if err != nil {
+		log.Fatalf("Something wrong with '%s', pass another one", file)
+	}
+
+	for i, cmd := range strings.Split(string(contents), "\n") {
+		fmt.Printf("%d  %s\n", i+1, cmd)
+		output[i+1] = cmd
 	}
 
 	return output
 }
 
 func main() {
+	var jobs map[int]string
+
 	flags.Usage = printUsage
 	flags.Parse(os.Args[1:])
 	argv := flags.Args()
 
-	// repeater
-	if len(argv) < 1 {
-		check(fmt.Errorf("<repeater> required"))
+	// we can pass filename or repeater with command combo
+	if len(argv) == 1 {
+		_, err := os.Open(argv[0]) // For read access.
+		if err != nil {
+			log.Fatal("File '%s' can't be opened")
+		}
+
+		jobs = fileJobs(argv[0])
+	} else {
+		// repeater
+		if len(argv) < 1 {
+			check(fmt.Errorf("<repeater> required"))
+		}
+
+		// command
+		if len(argv) < 2 {
+			check(fmt.Errorf("<command> required"))
+		}
+
+		cmdTemplate := strings.Join(argv[1:], " ")
+		jobs = getJobs(argv[0], cmdTemplate)
+
+		if len(jobs) < 1 {
+			check(fmt.Errorf("valid <repeater> required (e.g. 56 or 1,3,4,100-102"))
+		}
 	}
 
-	repeater := parseRepeater(argv[0])
-
-	if len(repeater) < 1 {
-		check(fmt.Errorf("valid <repeater> required (e.g. 56 or 1,3,4,100-102"))
-	}
-
-	jobs := make(chan string, len(repeater))
-	results := make(chan int, len(repeater))
-
-	// command
-	if len(argv) < 2 {
-		check(fmt.Errorf("<command> required"))
-	}
-
-	// command name and args
-	cmd := strings.Join(argv[1:], " ")
+	// prepeare channels
+	queue := make(chan string, len(jobs))
+	results := make(chan int, len(jobs))
 
 	// run workers in concurent subroutines
 	log.Printf("Splitting jobs on %d workers", *pool)
 
 	for i := 1; i <= *pool; i++ {
-		go worker(i, cmd, jobs, results, exit)
+		go worker(i, queue, results, exit)
 	}
 
-	// adding jobs to job channel
-	for j := range repeater {
-		jobs <- j
+	// adding jobs to job queue
+	for _, cmd := range jobs {
+		fmt.Println(cmd)
+		queue <- cmd
 	}
 
 	// collect results - blocks until all results will be filled
-	for _, _ = range repeater {
+	for _, _ = range jobs {
 		<-results
 	}
 }

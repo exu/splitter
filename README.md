@@ -15,17 +15,24 @@
 
 `splitter [options] <repeater> <command>`
 
+or
+
+`splitter [options] <file name>`
+
 
 ### Parameters:
 
-- `<reapeter>` - decide how many jobs to run (numbers passed to command string)
-- `<command>`  - command template (could contain %s placeholder,
+- `<reapeter>`  - decide how many jobs to run (numbers passed to command string)
+- `<command>`   - command template (could contain %s placeholder,
                     where number from repeater will be injected
+- `<file name>` - file with command in each line, if you pass file parameter
+
 
 ### Options:
 
 - `--exit` exit on error - default false
 - `--pool` worker pool size - default 4
+           <repeater> and <command> is not needed anymore
 
 
 It splits your work to workers pool if you need run some command several times in parallel.

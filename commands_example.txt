@@ -1,0 +1,6 @@
+ls -la
+ls
+ls
+df -h
+du -sh
+ls
