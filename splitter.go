@@ -174,7 +174,9 @@ func fileJobs(file string) map[int]string {
 	}
 
 	for i, cmd := range strings.Split(string(contents), "\n") {
-		output[i+1] = cmd
+		if cmd != "" {
+			output[i+1] = cmd
+		}
 	}
 
 	return output

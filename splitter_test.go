@@ -65,9 +65,19 @@ func TestGetJobsWithRangeAndEnum(t *testing.T) {
 func TestGetJobsFromFile(t *testing.T) {
 	jobs := fileJobs("commands_example.txt")
 
+	if len(jobs) != 6 {
+		t.Errorf("There should be 6 jobs in example file not %d", len(jobs))
+	}
+
 	// 1 indexed  should be firts command from file
 	cmd1 := jobs[1]
 	if cmd1 != "ls -la" {
-		t.Errorf("Bad command")
+		t.Errorf("Bad command %s - should be 'ls -la'", cmd1)
 	}
+
+	cmd5 := jobs[5]
+	if cmd5 != "du -sh" {
+		t.Errorf("Bad command %s - should be 'du -sh'", cmd5)
+	}
+
 }
