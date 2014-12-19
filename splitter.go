@@ -114,38 +114,41 @@ func worker(i int, queue <-chan string, results chan<- int, exit *bool) {
 	}
 }
 
-func parseRanges(output map[int]string, s string) {
-	var val string
-
+func parseRanges(output map[int]string, idx int, s string) int {
 	if strings.Contains(s, "-") {
 		ranges := strings.Split(s, "-")
 		from, _ := strconv.Atoi(ranges[0])
 		to, _ := strconv.Atoi(ranges[1])
 		for i := from; i <= to; i++ {
-			output[i] = val
+			idx++
+			output[idx] = strconv.Itoa(i)
 		}
 	} else {
-		val, _ := strconv.Atoi(s)
-		output[val] = s
+		idx++
+		output[idx] = s
 	}
+
+	return idx
 }
 
 func getJobs(input string, cmdTemplate string) map[int]string {
 	var cmd string
 
 	output := map[int]string{}
+	idx := 0
 
 	if strings.Contains(input, ",") {
 		parts := strings.Split(input, ",")
 		for _, s := range parts {
-			parseRanges(output, s)
+			idx = parseRanges(output, idx, s)
 		}
 	} else if strings.Contains(input, "-") {
-		parseRanges(output, input)
+		idx = parseRanges(output, idx, input)
 	} else {
 		num, _ := strconv.Atoi(input)
 		for i := 1; i <= num; i++ {
-			output[i] = strconv.Itoa(i)
+			idx++
+			output[idx] = strconv.Itoa(i)
 		}
 	}
 
@@ -166,14 +169,11 @@ func fileJobs(file string) map[int]string {
 	var output = map[int]string{}
 
 	contents, err := ioutil.ReadFile(file)
-	fmt.Println("File contents %v", contents)
-
 	if err != nil {
 		log.Fatalf("Something wrong with '%s', pass another one", file)
 	}
 
 	for i, cmd := range strings.Split(string(contents), "\n") {
-		fmt.Printf("%d  %s\n", i+1, cmd)
 		output[i+1] = cmd
 	}
 
@@ -227,7 +227,6 @@ func main() {
 
 	// adding jobs to job queue
 	for _, cmd := range jobs {
-		fmt.Println(cmd)
 		queue <- cmd
 	}
 
