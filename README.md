@@ -19,6 +19,7 @@ or
 
 `splitter [options] <file name>`
 
+if first parameter is file name command and reapeater are not needed!
 
 ### Parameters:
 
