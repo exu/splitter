@@ -81,7 +81,7 @@ func printUsage() {
 func check(err error) {
 	if err != nil {
 		fmt.Println(usage)
-		log.Fatalf("Error: %s\n", err)
+		log.Fatalf("[31mError: %s[0m\n", err)
 	}
 }
 
@@ -191,12 +191,13 @@ func main() {
 
 	// we can pass filename or repeater with command combo
 	if len(argv) == 1 {
-		_, err := os.Open(argv[0]) // For read access.
-		if err != nil {
-			log.Fatal("File '%s' can't be opened")
+		filename := argv[0]
+		if _, err := os.Stat(filename); os.IsNotExist(err) {
+			check(fmt.Errorf("no such file or directory: %s", filename))
+			return
 		}
 
-		jobs = fileJobs(argv[0])
+		jobs = fileJobs(filename)
 	} else {
 		// repeater
 		if len(argv) < 1 {
